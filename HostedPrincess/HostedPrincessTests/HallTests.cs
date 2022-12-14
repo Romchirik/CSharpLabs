@@ -2,6 +2,7 @@ using HostedPrincess.Data.ContenderGenerator;
 using HostedPrincess.Data.Hall;
 using HostedPrincess.Domain.ContenderGenerator;
 using HostedPrincess.Domain.Hall;
+using Moq;
 
 namespace HostedPrincessTests;
 
@@ -11,15 +12,15 @@ public class HallTests
     public void CallNextContenderTest()
     {
         var actualContenders = new List<Contender>();
-        var testGenerator = new TestGenerator();
+        var testGenerator = Mock.Of<IContenderGenerator>(ld => ld.CreateApplicantsWithRating() == _contenders);
         var hall = new HallImpl(testGenerator);
 
-        for (int i = 0; i < testGenerator.Contenders.Count; i++)
+        for (int i = 0; i < _contenders.Count; i++)
         {
             actualContenders.Add(hall.GetNextContender());
         }
 
-        foreach (var pair in testGenerator.Contenders)
+        foreach (var pair in _contenders)
         {
             Assert.That(actualContenders.Contains(pair.Key), Is.True);
         }
@@ -28,10 +29,10 @@ public class HallTests
     [Test]
     public void ThrowOnEmptyTest()
     {
-        var testGenerator = new TestGenerator();
+        var testGenerator = Mock.Of<IContenderGenerator>(ld => ld.CreateApplicantsWithRating() == _contenders);
         var hall = new HallImpl(testGenerator);
 
-        for (int i = 0; i < testGenerator.Contenders.Count; i++)
+        for (int i = 0; i < _contenders.Count; i++)
         {
             hall.GetNextContender();
         }
@@ -39,21 +40,11 @@ public class HallTests
         Assert.That(hall.GetNextContender, Throws.InvalidOperationException);
     }
 
-    class TestGenerator : IContenderGenerator
+    private readonly List<KeyValuePair<Contender, int>> _contenders = new()
     {
-        public readonly List<KeyValuePair<Contender, int>> Contenders = new();
-
-        public TestGenerator()
-        {
-            Contenders.Add(new KeyValuePair<Contender, int>(new Contender("Пупкин", "Василий"), 100));
-            Contenders.Add(new KeyValuePair<Contender, int>(new Contender("Иванов", "Павел"), 99));
-            Contenders.Add(new KeyValuePair<Contender, int>(new Contender("Машинов", "Машина"), 98));
-            Contenders.Add(new KeyValuePair<Contender, int>(new Contender("Убытков", "Ущерб"), 97));
-        }
-
-        public List<KeyValuePair<Contender, int>> CreateApplicantsWithRating()
-        {
-            return Contenders;
-        }
-    }
+        new KeyValuePair<Contender, int>(new Contender("Пупкин", "Василий"), 100),
+        new KeyValuePair<Contender, int>(new Contender("Иванов", "Павел"), 99),
+        new KeyValuePair<Contender, int>(new Contender("Машинов", "Машина"), 98),
+        new KeyValuePair<Contender, int>(new Contender("Убытков", "Ущерб"), 97),
+    };
 }

@@ -15,7 +15,7 @@ public class ContenderGeneratorTest
         for (int i = 0; i < 100; i++)
         {
             var generator = new LazyContenderGenerator(100);
-            var set = new HashSet<Contender>(generator.CreateApplicantsWithRating().Select((pair => pair.Key)));
+            var set = new HashSet<Contender>(generator.CreateApplicantsWithRating().Select(pair => pair.Key));
             Assert.That(set.Count, Is.EqualTo(100));
         }
     }
