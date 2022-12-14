@@ -2,6 +2,7 @@ using HostedPrincess.Data.Friend;
 using HostedPrincess.Data.Hall;
 using HostedPrincess.Domain.ContenderGenerator;
 using HostedPrincess.Domain.Hall;
+using Moq;
 
 namespace HostedPrincessTests;
 
@@ -10,54 +11,47 @@ public class FriendTest
     [Test]
     public void TestComparison()
     {
-        var testGenerator = new TestGenerator();
-        var hall = new HallImpl(testGenerator);
-        var friend = new FriendImpl(testGenerator, hall);
+        var testGenerator = Mock.Of<IContenderGenerator>(ld => ld.CreateApplicantsWithRating() == _contenders);
+        var hallMock = new Mock<IHall>();
+        var friend = new FriendImpl(testGenerator, hallMock.Object);
 
-        var contender1 = new Contender("Пупкин", "Василий");
-        var contender2 = new Contender("Иванов", "Иван");
+        var contender0 = _contenders[0];
+        var contender1 = _contenders[1];
 
-        hall.GetNextContender();
-        hall.GetNextContender();
+        hallMock.Setup(hm => hm.IsContenderEmitted(contender0.Key)).Returns(true);
+        hallMock.Setup(hm => hm.IsContenderEmitted(contender1.Key)).Returns(true);
 
-        Assert.That(friend.CompareContenders(contender1, contender2), Is.EqualTo(contender1));
-        Assert.That(friend.CompareContenders(contender2, contender1), Is.EqualTo(contender1));
-        Assert.That(friend.CompareContenders(contender1, contender1), Is.Null);
+        Assert.That(friend.CompareContenders(contender0.Key, contender1.Key), Is.EqualTo(contender0.Key));
+        Assert.That(friend.CompareContenders(contender1.Key, contender0.Key), Is.EqualTo(contender0.Key));
+        Assert.That(friend.CompareContenders(contender0.Key, contender0.Key), Is.Null);
     }
 
     [Test]
-    public void TestNotAcquainted()
+    public void TestContenderConsistencyCheck()
     {
-        var testGenerator = new TestGenerator();
-        var hall = new HallImpl(testGenerator);
-        var friend = new FriendImpl(testGenerator, hall);
+        var generatorMock = Mock.Of<IContenderGenerator>(ld => ld.CreateApplicantsWithRating() == _contenders);
+        var hallMock = new Mock<IHall>();
 
-        var contender1 = new Contender("Пупкин", "Василий");
-        var contender2 = new Contender("Иванов", "Иван");
+        var contender0 = _contenders[0];
+        var contender1 = _contenders[1];
+        var friend = new FriendImpl(generatorMock, hallMock.Object);
 
-        Assert.That(() => friend.CompareContenders(contender1, contender2), Throws.InvalidOperationException);
+        hallMock.Setup(hm => hm.IsContenderEmitted(contender0.Key)).Returns(false);
+        hallMock.Setup(hm => hm.IsContenderEmitted(contender1.Key)).Returns(false);
 
-        hall.GetNextContender();
-        hall.GetNextContender();
+        Assert.That(() => friend.CompareContenders(contender0.Key, contender1.Key), Throws.InvalidOperationException);
 
-        Assert.That(() => friend.CompareContenders(contender1, contender2), Throws.Nothing);
+        hallMock.Setup(hm => hm.IsContenderEmitted(contender0.Key)).Returns(true);
+        hallMock.Setup(hm => hm.IsContenderEmitted(contender1.Key)).Returns(true);
+
+        Assert.That(() => friend.CompareContenders(contender0.Key, contender1.Key), Throws.Nothing);
     }
 
-    class TestGenerator : IContenderGenerator
+    private readonly List<KeyValuePair<Contender, int>> _contenders = new()
     {
-        private readonly List<KeyValuePair<Contender, int>> _contenders = new();
-
-        public TestGenerator()
-        {
-            _contenders.Add(new KeyValuePair<Contender, int>(new Contender("Пупкин", "Василий"), 100));
-            _contenders.Add(new KeyValuePair<Contender, int>(new Contender("Иванов", "Иван"), 99));
-            _contenders.Add(new KeyValuePair<Contender, int>(new Contender("Машинов", "Машина"), 98));
-            _contenders.Add(new KeyValuePair<Contender, int>(new Contender("Убытков", "Ущерб"), 97));
-        }
-
-        public List<KeyValuePair<Contender, int>> CreateApplicantsWithRating()
-        {
-            return _contenders;
-        }
-    }
+        KeyValuePair.Create(new Contender("Пупкин", "Василий"), 100),
+        KeyValuePair.Create(new Contender("Иванов", "Иван"), 99),
+        KeyValuePair.Create(new Contender("Машинов", "Машина"), 98),
+        KeyValuePair.Create(new Contender("Убытков", "Ущерб"), 97),
+    };
 }
